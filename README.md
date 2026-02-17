@@ -18,13 +18,6 @@
 *** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
 *** https://www.markdownguide.org/basic-syntax/#reference-style-links
 -->
-[![Contributors][contributors-shield]][contributors-url]
-[![Forks][forks-shield]][forks-url]
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![project_license][license-shield]][license-url]
-[![LinkedIn][linkedin-shield]][linkedin-url]
-
 
 
 <!-- PROJECT LOGO -->
@@ -41,9 +34,6 @@
   <ol>
     <li>
       <a href="#about-the-project">About The Project</a>
-      <ul>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
     </li>
     <li>
       <a href="#getting-started">Getting Started</a>
@@ -52,11 +42,8 @@
         <li><a href="#installation">Installation</a></li>
       </ul>
     </li>
-    <li><a href="#usage">Usage</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
     <li><a href="#contributing">Contributing</a></li>
-    <li><a href="#license">License</a></li>
-    <li><a href="#contact">Contact</a></li>
     <li><a href="#acknowledgments">Acknowledgments</a></li>
   </ol>
 </details>
@@ -65,8 +52,6 @@
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
-
-[![Product Name Screen Shot][product-screenshot]](https://example.com)
 
 A term project for the EECS348 (Software Engineering) class at KU.
 
@@ -133,8 +118,7 @@ Don't forget to give the project a star! Thanks again!
 * Tugs-Oyut Tsendensodnom - Project Member
 * Alexander Wichern - Project Member
 * Toye Oloko - TA
-* [Hossein Saiedian - Professor][professor-link]
-[professor-link]: <https://eecs.ku.edu/people/hossein-saiedian>
+* Hossein Saiedian - Professor: <https://eecs.ku.edu/people/hossein-saiedian>
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
