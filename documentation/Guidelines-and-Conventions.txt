@@ -1,0 +1,95 @@
+Author: Austin Haight - Filesystem Handler
+
+This document is contains the procedure for making and submitting PRs to GitHub, and rules for how our code should look going forward. 
+The purpose of this document is to standardize the process of making changes, prevent accidental major codebase issues, and make sure our code consistently readable for ease of editing and debugging.
+
+
+PR Guidelines - The overall process for making and submitting a PR to the GitHub is as follows:
+
+From a GitBash terminal located at your local clone of the repo
+1. Run "git pull" to make sure your local clone of the repo is up to date
+2. Create and checkout a new branch from main, the name of the branch should be the overall change you intend to make
+3. Make your changes to the branch, include short commit messages for your changes, these commit messages may be the same as the branch name if no unexpected changes were needed
+4. Run "git push <remote name, default is origin> <branch name>"
+5. Make a PR to merge your branch into main
+
+PRs will be checked at roughly 7:00AM and 4:00PM every weekday, if you need something checked you can also send me a message via email (austindhaight@ku.edu) or the group discord.
+Do not make changes to main directly, I know some of you know what precautions to take to avoid damaging main but I would prefer to not risk it, the only changes to main should be PR merges.
+Do not change filenames unless the previous filename was innacurate, replacing exampledoc.docx with updatedexampledoc.docx is inviting diverging branches. If you want to use save as and keep your changed file under a different name, you can run "mv <changed file path> <old file path> to overwrite the file on your branch before pushing.
+
+Conventions:
+These are rules for how to format variable names and the general structure of code, for the purpose of consistency between members and readability
+
+-Naming:
+ -normal variable names should be camelCase
+ -constant/final variable names should be CAPITAL_CASE
+ -class names and static method names should be UpperCase
+ -for the purpose of naming, a function or method is considered a variable with type equivalent to its return type and prefixes equivalent to its method prefixes
+  -int sum(int x, int y); should use camelCase, as it is considered a normal variable
+  -static int Sum(int x, int y); should use UpperCase, as it is a static method
+
+-Blocks/Whitespace:
+ -any code inside of curly brackets ({}) should be indented by exactly one space (this is the only indentation that I can guarantee will stay consistent between multiple editors)
+ -opening curly brackets should be on the line immediately after what they are attached to, this is to make it immediately clear which opening curly brackets are associated with which	closing curly brackets
+  -examples:
+
+   if(bool){
+    //free floating, code has to be read past the beginning of a line to see pairs
+   }
+
+   if(bool)
+   {
+    //brackets on the same vertical axis are clearly pairs
+   }
+
+ -code blocks should be separated by empty lines
+  -a good rule of thumb for knowing when to split one block into multiple blocks is if you can say what a subset of the lines do without needing to say what each individual line does, for example:
+
+   //get input
+   string s;
+   fget("enter a string>%s", s);
+
+   //find spaces
+   int spaces[100];
+   int lastSpace=1;
+   spaces[0]=0;
+   for(int i=0; i<s.length(); i++)
+   {
+    if(s[i]==' ')
+    {
+     spaces[lastSpace]=i+1;
+     lastSpace++;
+    }
+   }
+
+   //split string
+   string splitS[lastSpace];
+   for(int i=1; i<=lastSpace; i++)
+   {
+    splitS[i-1]=new string(spaces[i]-spaces[i-1], '0');
+    string::copy(splitS[i-1], spaces[i]-spaces[i-1], spaces[i-1]);
+   }
+
+-Comments:
+ -all code blocks should be headed by a single-line comment describing their function
+  -if the block is the entirety of a function or method, the comment should be heading the function or method, more on method comments later
+  -if the comment requires a large number of qualifiers it may be a good idea to atomize your function into multiple smaller functions
+ -all classes and member methods should be headed by a doc comment, doc comments are picked up by IDEs to be shown in context prompts
+  -doc comments have this format:
+
+   /*
+   * <class/method name>
+   * <parameter 1 name> <purpose of parameter 1>
+   * <parameter 2 name> <purpose of parameter 2>
+   * ... for all method parameters, classes have no parameters
+   * 
+   * <description of class/method (what it is/does/returns)>
+   * 
+   * <possible edge cases/parameter constraints>
+   */
+ 
+-Structure/Best Practices:
+ -you should be able to describe a function or method as a single complete action, if you have to conjoin several complete actions together to describe a function method, it should probably be decomposed into multiple separate functions or methods
+ -when designing a class, store internal values as private "_name" values instead of public "name" values, and make getter and setter methods as necessary, this makes it far easier to check and filter for edge cases
+ -define toString() method overrides for every class you make, this lets someone much more easily log values during debugging and testing
+
