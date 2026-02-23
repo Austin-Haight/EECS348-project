@@ -1,10 +1,16 @@
-2/17/26 5:02pm
-
+Date/Time: 2/17/26 5:02pm
+Location: Discord Meeting
+Objective: Review and discuss project plan to confirm proper progress is being made, while solving                    problems with pushing to GitHub.
 Present: Alexander Wichern, Austin Haight, Eric Faltermeier, Yecolia Ephraim, John Pann,	
 Not Present: Tugs-Oyut Tsedensodnom (prior commitment)
 
-Reviewed how to commit/push for Deliverable 1, discussed merging with a docx vs txt.
+Discussion Points: 
+- Reviewed how to commit/push for Deliverable 1, discussed merging with a docx vs txt
+- Finalized roles for project plan and reviewed progress with each member
+- Discussed plans for deliverable 2
+- Assisted member with merging sections 1.1 and 1.2 
+- Confirmed everyone was almost done with their sections for the plan
 
-Discussed Plans for deliverable 2
-
-Merged sections 1.1 and 1.2 
+Tasks:
+- Every member needs to complete their assigned sections
+- Plan on meeting at the same time next week
