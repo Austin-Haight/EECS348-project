@@ -1,6 +1,6 @@
 Date/Time: 2/17/26 5:02pm
 Location: Discord Meeting
-Objective: Review and discuss project plan to confirm proper progress is being made, while solving                    problems with pushing to GitHub.
+Objective: Review and discuss project plan to confirm proper progress is being made, while solving problems with pushing to GitHub.
 Present: Alexander Wichern, Austin Haight, Eric Faltermeier, Yecolia Ephraim, John Pann,	
 Not Present: Tugs-Oyut Tsedensodnom (prior commitment)
 
@@ -14,3 +14,4 @@ Discussion Points:
 Tasks:
 - Every member needs to complete their assigned sections
 - Plan on meeting at the same time next week
+
