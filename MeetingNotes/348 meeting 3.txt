@@ -1,25 +1,19 @@
-﻿Present: Yecolia Ephraim, Austin Haight,  Eric Faltermeier , Alexander Wichern, John Pannell 
+Date/Time: 3/3/26 5:05pm
+Location: Discord Meeting
+Objective: Assign roles and review tasks for SRS document.
+Present: Yecolia Ephraim, Austin Haight,  Eric Faltermeier , Alexander Wichern, John Pannell 
 Not Present: Tugs-Oyut Tsedensodnom (exam)
 
-
-Wanted to save 1.4 of deliverable 2 to be done as a group
-
-
-Discussed content for part 2 vs content for part 3 
-
-
-Discussed possibility of doing extra credit sections
-
-
-Austin volunteered to do section 3.1
-
+Discussion Points:
+- Wanted to save 1.4 of deliverable 2 to be done as a group
+- Discussed content for part 2 vs content for part 3 
+- Discussed possibility of doing extra credit sections
+- Austin volunteered to do section 3.1
 
 Work Split for Deliverable 2:
-
-
-Austin: 3.1
-Alexander:  1 / 2
-Yecolia: 1.1 / 3.2
-Eric: 1.2 / 3.3
-John: 1.5 / 3.3
-Tugs (not present): 4 / 5
+- Austin: 3.1
+- Alexander:  1 / 2
+- Yecolia: 1.1 / 3.2
+- Eric: 1.2 / 3.3
+- John: 1.5 / 3.3
+- Tugs (not present): 4 / 5
