@@ -1,8 +1,14 @@
-3/10
+Date/Time: 3/10/26 5:03pm
+Location: Discord Meeting
+Objective: Ensure all assigned work for deliverable 2 has been pushed to GitHub and review completed work.
+Present: All Group Members
 
-Present: All
+Discussion Points: 
+- GitHub branch management 
+- Discussed optional features (not included)
+- Each member described completed tasks
+- Reviewed work still to finish (1.3/1.4)
+- Reviewed protocol for pushing work to GitHub
 
-Discussed GitHub branch management 
-
-Discussed optional features (not included)	
-
+Tasks:
+- Confirm deliverable 2 is ready for due date on 3/15/26
