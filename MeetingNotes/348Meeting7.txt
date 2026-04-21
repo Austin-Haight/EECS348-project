@@ -1,0 +1,21 @@
+4/21 Meeting, started @ 5:02
+Present: Alexander, Austin, Eric, John. Tugs, Yecolia
+Absent: None
+
+Discussed how to write test case for unclosed parentheses in the lexer
+
+reviewed the architecture document to make sure everyone was on the same page about the function of the project
+
+discussed difference in parsing layers, first layer separates out user tokens and puts them into preorder notation and second layer validates the order with respect to PEMDAS
+
+Decided to have two people work on the I/O system and two people to work on the parsing system
+
+discussed following the style guide for input/output methods
+
+Assignments: Yecolia - parser
+	     Alexander/Eric - I/O
+	     Tugs - controller
+	     John - evaluator
+	     Austin - everything else
+
+Ended @ 5:23
