@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <typeinfo>
 #include <memory>
+#include <optional>
 
 using namespace std;
 
@@ -135,7 +136,7 @@ class Tokenizer
    initDFA();
   }
 
-  TokenizerError tokenize(string input)
+  optional<TokenizerError> tokenize(string input)
   {
    pos=0;
    outlen=0;
@@ -261,5 +262,6 @@ class Tokenizer
     }
     (*(*_out).back().get()).IsTerminator = true;
    }
+   return optional<TokenizerError>();
   }
 };

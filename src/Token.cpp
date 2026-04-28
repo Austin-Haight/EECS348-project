@@ -23,12 +23,18 @@ class IntToken : public Token
   int to_int()
   {
     int out=0;
+    bool negative=false;
     for(int i=0; i<value.length();i++)
     {
+     if(value[i]=='-')
+     {
+      negative=true;
+      continue;
+     }
      out*=10;
      out+=value[i];
     }
-    return out;
+    return (-1*negative)*out;
   }
   string to_string()
   {
@@ -44,8 +50,14 @@ class FloatToken : public Token
   {
     float out=0.;
     int dotpos=0;
+    bool negative=false;
     for(int i=0;i<value.length();i++)
     {
+     if(value[i]=='-')
+     {
+      negative=true;
+      continue;
+     }
      if(value[i]=='.')
      {
       dotpos=i;
@@ -56,7 +68,7 @@ class FloatToken : public Token
       out+=value[i];
      }
     }
-    return out/(value.length()-dotpos);
+    return (-1*negative)*out/(value.length()-dotpos);
   }
   string to_string()
   {
