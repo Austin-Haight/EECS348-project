@@ -20,6 +20,16 @@ class IntToken : public Token
   {
    value=val;
   }
+  int to_int()
+  {
+    int out=0;
+    for(int i=0; i<value.length();i++)
+    {
+     out*=10;
+     out+=value[i];
+    }
+    return out;
+  }
   string to_string()
   {
    return value;
@@ -30,6 +40,24 @@ class FloatToken : public Token
 {
  public:
   FloatToken(string val){value=val;}
+  float to_float()
+  {
+    float out=0.;
+    int dotpos=0;
+    for(int i=0;i<value.length();i++)
+    {
+     if(value[i]=='.')
+     {
+      dotpos=i;
+     }
+     else
+     {
+      out*=10;
+      out+=value[i];
+     }
+    }
+    return out/(value.length()-dotpos);
+  }
   string to_string()
   {
    return value;

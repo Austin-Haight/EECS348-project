@@ -132,6 +132,7 @@ class Tokenizer
   {
    _out = &output;
    *_out = list<unique_ptr<Token>>();
+   initDFA();
   }
 
   TokenizerError tokenize(string input)
@@ -153,7 +154,14 @@ class Tokenizer
     switch(stripped[i])
     {
      case '-':
-      if(typeid((*_out).back())==typeid(OperatorToken))
+      if((*((*_out).back().get())).inputs==0)
+      {
+        unique_ptr<Token> t(new OperatorToken("-"));
+        (*_out).push_back(t);
+        i++;
+        break;
+      }
+      if(i+1<stripped.length() && stripped[i+1]=='(')//this is the only case where a negation token should actually exist, otherwise it's just part of an int or float
       {
        unique_ptr<Token> t(new NegationToken());
        (*_out).push_back(t);
@@ -251,6 +259,7 @@ class Tokenizer
      default:
       return TokenizerError(i);
     }
+    (*(*_out).back().get()).IsTerminator = true;
    }
   }
 };
