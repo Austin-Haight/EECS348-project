@@ -1,249 +1,311 @@
-#include "parser.hpp"
-#include <cctype>
+#include "Token.cpp"
+#include "Error.cpp"
+#include <list>
+#include <vector>
+#include <memory>
+#include <optional>
+#include <string>
 
-// Constructor: stores where we should put the final tree
-Parser::Parser(TreeNode *&out) {
-  output = &out;
-  tokens = nullptr;
-}
+using namespace std;
 
-// Check if we reached the end of the token list
-bool Parser::atEnd() { return current == tokens->end(); }
+// ---------------------------------------------------------------------------
+// ParserError
+// ---------------------------------------------------------------------------
+// Signals a syntax problem found during parsing.
+// 'position' is the index into the token list where the error occurred.
+class ParserError : public Error
+{
+public:
+    int position;
+    string message;
 
-// Get the current token as a string
-// (we rely on tokenizer's to_string())
-string Parser::currentValue() {
-  if (atEnd()) {
-    return "";
-  }
+    ParserError(int pos, string msg)
+        : position(pos), message(msg) {}
+};
 
-  return (*current)->to_string();
-}
+// ---------------------------------------------------------------------------
+// ParseResult
+// ---------------------------------------------------------------------------
+// Returned by Parser::parse().
+// On success  -> error is empty,  tokens holds the prefix-order token list.
+// On failure  -> error holds a ParserError, tokens is empty.
+struct ParseResult
+{
+    list<Token*> tokens;                  // prefix (pre-order) traversal output
+    optional<ParserError> error;
+};
 
-// Move to the next token
-void Parser::moveNext() {
-  if (!atEnd()) {
-    ++current;
-  }
-}
+// ---------------------------------------------------------------------------
+// TreeNode  (internal expression tree)
+// ---------------------------------------------------------------------------
+// The parser builds a temporary binary/unary expression tree so that
+// PEMDAS precedence and parentheses are handled cleanly.  The tree is then
+// flattened into a prefix token list for the evaluator.
+struct TreeNode
+{
+    Token* token = nullptr;           // the operator or operand at this node
+    TreeNode* left  = nullptr;        // first (or only) child
+    TreeNode* right = nullptr;        // second child (binary operators only)
 
-// Check if a string is a number (int or decimal)
-bool Parser::isNumber(string value) {
-  if (value.length() == 0) {
-    return false;
-  }
+    ~TreeNode()
+    {
+        delete left;
+        delete right;
+    }
+};
 
-  int start = 0;
-  bool hasDigit = false;
-  bool hasDecimal = false;
+// ---------------------------------------------------------------------------
+// Parser
+// ---------------------------------------------------------------------------
+// Implements a straightforward recursive-descent parser.
+//
+// Grammar (from lowest to highest precedence):
+//
+//   expression  := term   ( ('+' | '-')  term   )*
+//   term        := factor ( ('*' | '/' | '//' | '%') factor )*
+//   factor      := primary ( '**' factor )*          <- right-associative
+//   unary       := '-' primary | primary
+//   primary     := number | '(' expression ')'
+//   number      := IntToken | FloatToken
+//
+// The parser consumes a flat list<unique_ptr<Token>> produced by Tokenizer
+// and writes a flat prefix-order list<Token*> into ParseResult.
+// The Token objects are still owned by the caller's list; the parser only
+// borrows raw pointers.
+// ---------------------------------------------------------------------------
+class Parser
+{
+private:
+    // ---- state ------------------------------------------------------------
+    vector<Token*> _tokens;   // borrowed, flat view of the tokenizer output
+    int            _pos;      // current read position
 
-  // Handle negative numbers like "-5"
-  if (value[0] == '-') {
-    if (value.length() == 1) {
-      return false;
+    // ---- helpers ----------------------------------------------------------
+
+    Token* peek()
+    {
+        if (_pos < (int)_tokens.size())
+            return _tokens[_pos];
+        return nullptr;
     }
 
-    start = 1;
-  }
-
-  // Go through each character and check if valid
-  for (int i = start; i < value.length(); i++) {
-    if (isdigit(value[i])) {
-      hasDigit = true;
-    } else if (value[i] == '.') {
-      // Only allow one decimal point
-      if (hasDecimal) {
-        return false;
-      }
-
-      hasDecimal = true;
-    } else {
-      return false;
-    }
-  }
-
-  return hasDigit;
-}
-
-// Check if token is + or -
-bool Parser::isAddOp(string value) { return value == "+" || value == "-"; }
-
-// Check if token is *, /, or %
-bool Parser::isMultOp(string value) {
-  return value == "*" || value == "/" || value == "%";
-}
-
-// Check if token is **
-bool Parser::isPowerOp(string value) { return value == "**"; }
-
-// Main function that starts parsing
-ParserResult Parser::parse(list<unique_ptr<Token>> &input) {
-  tokens = &input;
-  current = tokens->begin();
-
-  ParserResult result;
-
-  // Start parsing from the highest level (expression)
-  TreeNode *root = parseExpression(result);
-
-  // If an error happened, return it
-  if (!result.success) {
-    return result;
-  }
-
-  // If we didn't reach the end, something extra is in input
-  if (!atEnd()) {
-    return ParserResult("Extra token found after expression.");
-  }
-
-  // Save the final tree
-  *output = root;
-
-  return result;
-}
-
-// Handles + and - (lowest precedence)
-// Example: 3 + 4 - 2
-TreeNode *Parser::parseExpression(ParserResult &result) {
-  TreeNode *left = parseTerm(result);
-
-  if (!result.success) {
-    return nullptr;
-  }
-
-  // Keep combining while we see + or -
-  while (!atEnd() && isAddOp(currentValue())) {
-    string op = currentValue();
-    moveNext();
-
-    TreeNode *right = parseTerm(result);
-
-    if (!result.success) {
-      return nullptr;
+    Token* consume()
+    {
+        if (_pos < (int)_tokens.size())
+            return _tokens[_pos++];
+        return nullptr;
     }
 
-    // Build tree node
-    left = new TreeNode(op, left, right);
-  }
-
-  return left;
-}
-
-// Handles *, /, % (middle precedence)
-// Example: 4 * 2 / 8
-TreeNode *Parser::parseTerm(ParserResult &result) {
-  TreeNode *left = parsePower(result);
-
-  if (!result.success) {
-    return nullptr;
-  }
-
-  while (!atEnd() && isMultOp(currentValue())) {
-    string op = currentValue();
-    moveNext();
-
-    TreeNode *right = parsePower(result);
-
-    if (!result.success) {
-      return nullptr;
+    bool isOperator(Token* t, const string& val)
+    {
+        if (!t) return false;
+        OperatorToken* op = dynamic_cast<OperatorToken*>(t);
+        return op && op->to_string() == val;
     }
 
-    left = new TreeNode(op, left, right);
-  }
-
-  return left;
-}
-
-// Handles exponentiation (**)
-// Right-associative: 2 ** 3 ** 2 = 2 ** (3 ** 2)
-TreeNode *Parser::parsePower(ParserResult &result) {
-  TreeNode *left = parseFactor(result);
-
-  if (!result.success) {
-    return nullptr;
-  }
-
-  if (!atEnd() && isPowerOp(currentValue())) {
-    string op = currentValue();
-    moveNext();
-
-    TreeNode *right = parsePower(result);
-
-    if (!result.success) {
-      return nullptr;
+    bool isAddSub(Token* t)
+    {
+        if (!t) return false;
+        OperatorToken* op = dynamic_cast<OperatorToken*>(t);
+        if (!op) return false;
+        string v = op->to_string();
+        return v == "+" || v == "-";
     }
 
-    left = new TreeNode(op, left, right);
-  }
-
-  return left;
-}
-
-// Handles:
-// - numbers
-// - parentheses
-// - unary + and -
-TreeNode *Parser::parseFactor(ParserResult &result) {
-  if (atEnd()) {
-    result = ParserResult("Expected a number or parenthesis.");
-    return nullptr;
-  }
-
-  string value = currentValue();
-
-  // Unary plus: just skip it
-  if (value == "+") {
-    moveNext();
-    return parseFactor(result);
-  }
-
-  // Unary minus: create a "neg" node
-  if (value == "-") {
-    moveNext();
-
-    TreeNode *factor = parseFactor(result);
-
-    if (!result.success) {
-      return nullptr;
+    bool isMulDivMod(Token* t)
+    {
+        if (!t) return false;
+        OperatorToken* op = dynamic_cast<OperatorToken*>(t);
+        if (!op) return false;
+        string v = op->to_string();
+        return v == "*" || v == "/" || v == "//" || v == "%";
     }
 
-    return new TreeNode("neg", factor, nullptr);
-  }
-
-  // Handle parentheses
-  if (value == "(") {
-    moveNext();
-
-    TreeNode *inside = parseExpression(result);
-
-    if (!result.success) {
-      return nullptr;
+    // Allocate a node. Ownership flows via unique_ptr, so the tree destructor
+    // handles all cleanup automatically — no manual tracking needed.
+    unique_ptr<TreeNode> makeNode(Token* t,
+                                  unique_ptr<TreeNode> left  = nullptr,
+                                  unique_ptr<TreeNode> right = nullptr)
+    {
+        auto n   = make_unique<TreeNode>();
+        n->token = t;
+        n->left  = left.release();
+        n->right = right.release();
+        return n;
     }
 
-    // Must have closing parenthesis
-    if (atEnd() || currentValue() != ")") {
-      result = ParserResult("Missing closing parenthesis.");
-      return nullptr;
+    // ---- recursive-descent grammar rules ----------------------------------
+
+    // expression := term ( ('+' | '-') term )*
+    unique_ptr<TreeNode> parseExpression(optional<ParserError>& err)
+    {
+        unique_ptr<TreeNode> left = parseTerm(err);
+        if (err) return nullptr;
+
+        while (isAddSub(peek()))
+        {
+            Token* op = consume();
+            unique_ptr<TreeNode> right = parseTerm(err);
+            if (err) return nullptr;
+
+            left = makeNode(op, std::move(left), std::move(right));
+        }
+        return left;
     }
 
-    moveNext();
+    // term := factor ( ('*' | '/' | '//' | '%') factor )*
+    unique_ptr<TreeNode> parseTerm(optional<ParserError>& err)
+    {
+        unique_ptr<TreeNode> left = parseFactor(err);
+        if (err) return nullptr;
 
-    return inside;
-  }
+        while (isMulDivMod(peek()))
+        {
+            Token* op = consume();
+            unique_ptr<TreeNode> right = parseFactor(err);
+            if (err) return nullptr;
 
-  // If it's a number, return it
-  if (isNumber(value)) {
-    moveNext();
-    return new TreeNode(value);
-  }
+            left = makeNode(op, std::move(left), std::move(right));
+        }
+        return left;
+    }
 
-  // Error: unexpected closing parenthesis
-  if (value == ")") {
-    result = ParserResult("Unexpected closing parenthesis.");
-    return nullptr;
-  }
+    // factor := unary ( '**' factor )*    (right-associative exponentiation)
+    unique_ptr<TreeNode> parseFactor(optional<ParserError>& err)
+    {
+        unique_ptr<TreeNode> base = parseUnary(err);
+        if (err) return nullptr;
 
-  // Any other case = invalid
-  result = ParserResult("Invalid expression.");
-  return nullptr;
-}
+        if (isOperator(peek(), "**"))
+        {
+            Token* op = consume();
+            unique_ptr<TreeNode> exp = parseFactor(err);   // recurse for right-assoc.
+            if (err) return nullptr;
+
+            return makeNode(op, std::move(base), std::move(exp));
+        }
+        return base;
+    }
+
+    // unary := NegationToken primary | primary
+    unique_ptr<TreeNode> parseUnary(optional<ParserError>& err)
+    {
+        if (dynamic_cast<NegationToken*>(peek()))
+        {
+            Token* neg = consume();
+            unique_ptr<TreeNode> child = parsePrimary(err);
+            if (err) return nullptr;
+
+            return makeNode(neg, std::move(child));
+        }
+        return parsePrimary(err);
+    }
+
+    // primary := '(' expression ')' | IntToken | FloatToken
+    unique_ptr<TreeNode> parsePrimary(optional<ParserError>& err)
+    {
+        Token* t = peek();
+
+        // Parenthesised sub-expression
+        if (dynamic_cast<OpenParenthesesToken*>(t))
+        {
+            consume(); // eat '('
+            unique_ptr<TreeNode> inner = parseExpression(err);
+            if (err) return nullptr;
+
+            if (!dynamic_cast<CloseParenthesesToken*>(peek()))
+            {
+                err = ParserError(_pos, "Expected closing parenthesis ')'");
+                return nullptr;
+            }
+            consume(); // eat ')'
+            return inner;
+        }
+
+        // Integer literal
+        if (dynamic_cast<IntToken*>(t))
+        {
+            consume();
+            return makeNode(t);
+        }
+
+        // Float literal
+        if (dynamic_cast<FloatToken*>(t))
+        {
+            consume();
+            return makeNode(t);
+        }
+
+        // Nothing valid here
+        err = ParserError(_pos,
+            t ? "Unexpected token: " + t->to_string()
+              : "Unexpected end of expression");
+        return nullptr;
+    }
+
+    // ---- tree -> prefix list ----------------------------------------------
+
+    // Pre-order traversal: operator/unary first, then children left-to-right.
+    void prefixFlatten(TreeNode* node, list<Token*>& out)
+    {
+        if (!node) return;
+        out.push_back(node->token);
+        prefixFlatten(node->left,  out);
+        prefixFlatten(node->right, out);
+    }
+
+public:
+    Parser() : _pos(0) {}
+
+    // -----------------------------------------------------------------------
+    // parse()
+    //
+    // Takes the token list produced by Tokenizer (the caller retains
+    // ownership of those unique_ptrs / Token objects).
+    // Returns a ParseResult with either a prefix token list or an error.
+    // -----------------------------------------------------------------------
+    ParseResult parse(const list<unique_ptr<Token>>& tokenList)
+    {
+        ParseResult result;
+
+        // Build a flat, borrowing vector for easy indexed access.
+        _tokens.clear();
+        _pos = 0;
+        for (const auto& uptr : tokenList)
+            _tokens.push_back(uptr.get());
+
+        if (_tokens.empty())
+        {
+            result.error = ParserError(0, "Empty token list — nothing to parse");
+            return result;
+        }
+
+        // Parse the full expression.
+        // 'root' is a unique_ptr: if we return early on error, it destructs
+        // automatically and recursively deletes all child nodes — no leaks,
+        // no double-deletes.
+        optional<ParserError> err;
+        unique_ptr<TreeNode> root = parseExpression(err);
+
+        if (err)
+        {
+            result.error = err;
+            return result;   // root unique_ptr destructs here if non-null
+        }
+
+        // Make sure every token was consumed (no trailing garbage).
+        if (_pos < (int)_tokens.size())
+        {
+            result.error = ParserError(_pos,
+                "Unexpected token after end of expression: " +
+                _tokens[_pos]->to_string());
+            return result;   // root unique_ptr destructs here
+        }
+
+        // Flatten the tree into prefix order.
+        prefixFlatten(root.get(), result.tokens);
+
+        return result;
+        // root unique_ptr destructs here, cleaning up the entire tree.
+    }
+};
