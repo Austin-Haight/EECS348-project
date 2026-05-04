@@ -1,5 +1,6 @@
 #include <cmath>
 #include <string>
+#include <list>
 
 #include "Parser.cpp"
 
@@ -14,7 +15,7 @@ Represents the possible error states that may occur.
 
 - NO_ERROR: Evaluated successfully
 - DIV_ZERO: Attempted division or modulo by zero
-- SYNTAX_ERROR: Invalid expression tree
+- SYNTAX_ERROR: Invalid prefix expression
 - UNKNOWN_TOKEN: Unrecognized token
 */
 enum ErrorType {
@@ -47,18 +48,14 @@ struct EvalResult {
 EVALUATOR CLASS
 =====================================
 
----------------------------------------------------------------------------
 PURPOSE:
-This class evaluates an expression tree (AST) and computes the 
-proper result.
----------------------------------------------------------------------------
+This class evaluates a prefix-ordered token stream and computes
+the proper result.
 
-------------------------------------------------------------------------------
 PRECONDITIONS:
-1. The input TreeNode pointer is a valid expression tree root
+1. The input prefix-ordered token list is valid
 2. Tokens are produced by a previous module tokenizer
-3. The Tokens are order properly according to PEMDAS evaluation
-4. Each node represents either a number, unary operator, or binary operator
+4. Each token represents either a number, unary operator, or binary operator
 5. Parentheses have already been handled by the parser and implemented in the AST
 
 POSTCONDITIONS:
@@ -66,122 +63,154 @@ POSTCONDITIONS:
 2. If evaluation was successful the errorType is 0
 3. If an error occurs the proper errorType is included
 4. If the value is undefined, its set to 0
-5. Input tree is not modified
-------------------------------------------------------------------------------
+5. Input token list is not modified
 */
 class Evaluator {
     public:
-        EvalResult evaluate(TreeNode* root);
+        EvalResult evaluate(list<Token*>& tokens);
     
     private:
-        EvalResult evalNode(TreeNode* root);
+        EvalResult evalPrefix(list<Token*>& tokens, list<Token*>::iterator& it);
 };
 
 /*
-evaluate:
-    Description:
-        Entry point for evaluating the expression by initializing evaluation and 
-        to start the recursive process.
+=======================
+EVALUATE METHOD
+=======================
+Description:
+    Entry point for evaluating the expression by initializing evaluation and 
+    to start the recursive process.
     
-    Parameters: 
-        root (TreeNode*): Pointer to the root of the tree
+Parameters: 
+    tokens (list<Token*>): list of all tokens from expression in prefix order.
     
-    Returns:
-        EvalResult: showing the computed result or the error information
+Returns:
+    EvalResult: showing the computed result or the error information
 */
-EvalResult Evaluator::evaluate(TreeNode* root) {
-
-    return evalNode(root);
+EvalResult Evaluator::evaluate(list<Token*>& tokens) {
+    list<Token*>::iterator it = tokens.begin();
+    return evalPrefix(tokens, it);
 }
 
 /*
-- evalNode:
-    Description:
-        Recursively evaluates a node using a post-order traversal.
+=======================
+EVALPREFIX METHOD
+=======================
+Description:
+    Recursively evaluates a prefix-ordered token stream by consuming tokens in order, 
+    where each operator triggers recursive evaluation of its operands before computing
+    the result.
     
-    Parameters: 
-        node (TreeNode*): Pointer to the current node in the tree
+Parameters: 
+    tokens (list<Token*>): list of all tokens from expression in prefix order.
+    it (list<Token*>::iterator&): reference to the current position in the token list.
     
-    Returns:
-        EvalResult: showing the computed result or the error information
+Returns:
+    EvalResult: showing the computed result or the error information
 */
-EvalResult Evaluator::evalNode(TreeNode* node) {
+EvalResult Evaluator::evalPrefix(list<Token*>& tokens, list<Token*>::iterator& it) {
 
-    // If the node does not exist, return a syntax error
-    if (node == nullptr) {
+    // If no tokens are left, return a syntax error
+    if (it == tokens.end()) {
         return {0, SYNTAX_ERROR};
     }
 
-    // UNARY OPERATOR
-    // If the node's value represents a '-' unary, then negate its single child
-    if (node->value == "neg") {
+    Token* t = *it; // the token 'it' is pointing to
 
-        // Confirm no error with child of '-' unary operator
-        if (node->left == nullptr) {
-            return {0, SYNTAX_ERROR};
+    ++it; // point to the next token
+
+    // ----------------------
+    // UNARY MINUS
+    //-----------------------
+
+    if (dynamic_cast<NegationToken*>(t)) {
+
+        EvalResult subExpr = evalPrefix(tokens, it);
+
+        // Confirm the subexpression has no error before applying operator
+        if (subExpr.errorType != NO_ERROR) {
+            return subExpr;
         }
 
-        EvalResult child = evalNode(node->left);
-
-        // Confirm the child has no error before applying operator
-        if (child.errorType != NO_ERROR) {
-            return child;
-        }
-
-        return {-child.value, child.errorType}; // negate the value
+        return {-subExpr.value, NO_ERROR}; // negate the value
     }
 
+    // -------------------
     // NUMBER
-    // If the node is a leaf (no children), then the node represents a number
-    if (node->left == nullptr && node->right == nullptr) {
-        return {stof(node->value), NO_ERROR}; // Convert the node's value to a float
+    // -------------------
+
+    if (IntToken* i = dynamic_cast<IntToken*>(t)) {
+        return {stof(i->to_string()), NO_ERROR}; // convert token string into a float
     }
 
-    // BINARY OPERATORS
-    // Evaluate the left subtree first
-    EvalResult left = evalNode(node->left);
+    // Check if this token is a float number and convert to a float
+    if (FloatToken* f = dynamic_cast<FloatToken*>(t)) {
+        return {stof(f->to_string()), NO_ERROR}; 
+    }
 
-    // Confirm no error type present in the left subtree
+    // ---------------------------
+    // BINARY OPERATORS
+    // ---------------------------
+
+    OperatorToken* oper = dynamic_cast<OperatorToken*>(t);
+
+    // Confirm the operator is valid
+    if (!oper) {
+        return {0, UNKNOWN_TOKEN};
+    }
+
+    string op = oper->to_string(); // convert the operator to a string
+
+    // Evaluate the left operand
+    EvalResult left = evalPrefix(tokens, it);
+
+    // Confirm left operand evaluated successfully
     if (left.errorType != NO_ERROR) {
         return left;
     }
 
-    // Evaluate the right subtree
-    EvalResult right = evalNode(node->right);
+    // Evaluate the right operand
+    EvalResult right = evalPrefix(tokens, it);
 
-    // Confirm no error type present in the right subtree
+    // Confirm right operand evaluated successfully
     if (right.errorType != NO_ERROR) {
         return right;
     }
 
-    // Get the operation in string format
-    const string& op = node->value;
+    // -------------------------
+    // APPLY OPERATORS
+    // -------------------------
 
-    // Evaluate based on the operator
     if (op == "+") {
         return {left.value + right.value, NO_ERROR};
     } 
+
     else if (op == "-") {
         return {left.value - right.value, NO_ERROR};
     }
+
     else if (op == "*") {
         return {left.value * right.value, NO_ERROR};
     }
+
     else if (op == "/") {
         if (right.value == 0) { // check for division by zero
             return {0, DIV_ZERO};
         }
         return {left.value / right.value, NO_ERROR};
     }
+
     else if (op == "%") {
         if (right.value == 0) { // check for division by zero
             return {0, DIV_ZERO};
         }
         return {left.value - right.value * floor(left.value / right.value), NO_ERROR};
     }
+
     else if (op == "**") {
         return {pow(left.value, right.value), NO_ERROR};
     }
+
     else {
         return {0, UNKNOWN_TOKEN}; // unknown operator
     }
