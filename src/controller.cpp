@@ -14,6 +14,8 @@ class Controller
 {
 private:
     vector<string> history;
+    list<unique_ptr<Token>> tokens;
+    Tokenizer tokenizer;
 
     bool isQuitCommand(const string& input)
     {
@@ -56,9 +58,6 @@ private:
 
     void processExpression(const string& input)
     {
-        list<unique_ptr<Token>> tokens;
-
-        Tokenizer tokenizer(tokens);
         optional<TokenizerError> tokenizerError = tokenizer.tokenize(input);
 
         if (tokenizerError)
@@ -88,6 +87,11 @@ private:
     }
 
 public:
+    Controller()
+    {
+        tokenizer = Tokenizer(&tokens);
+    }
+
     void run()
     {
         string input;

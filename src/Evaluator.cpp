@@ -67,10 +67,10 @@ POSTCONDITIONS:
 */
 class Evaluator {
     public:
-        EvalResult evaluate(list<Token*>& tokens);
+        EvalResult evaluate(list<unique_ptr<Token>>& tokens);
     
     private:
-        EvalResult evalPrefix(list<Token*>& tokens, list<Token*>::iterator& it);
+        EvalResult evalPrefix(list<unique_ptr<Token>>& tokens, list<unique_ptr<Token>>::iterator& it);
 };
 
 /*
@@ -87,8 +87,8 @@ Parameters:
 Returns:
     EvalResult: showing the computed result or the error information
 */
-EvalResult Evaluator::evaluate(list<Token*>& tokens) {
-    list<Token*>::iterator it = tokens.begin();
+EvalResult Evaluator::evaluate(list<unique_ptr<Token>>& tokens) {
+    list<unique_ptr<Token>>::iterator it = tokens.begin();
     return evalPrefix(tokens, it);
 }
 
@@ -108,14 +108,14 @@ Parameters:
 Returns:
     EvalResult: showing the computed result or the error information
 */
-EvalResult Evaluator::evalPrefix(list<Token*>& tokens, list<Token*>::iterator& it) {
+EvalResult Evaluator::evalPrefix(list<unique_ptr<Token>>& tokens, list<unique_ptr<Token>>::iterator& it) {
 
     // If no tokens are left, return a syntax error
     if (it == tokens.end()) {
         return {0, SYNTAX_ERROR};
     }
 
-    Token* t = *it; // the token 'it' is pointing to
+    unique_ptr<Token>& t = *it; // the token 'it' is pointing to
 
     ++it; // point to the next token
 
@@ -123,7 +123,7 @@ EvalResult Evaluator::evalPrefix(list<Token*>& tokens, list<Token*>::iterator& i
     // UNARY MINUS
     //-----------------------
 
-    if (dynamic_cast<NegationToken*>(t)) {
+    if (dynamic_cast<NegationToken*>(t.get())) {
 
         EvalResult subExpr = evalPrefix(tokens, it);
 
@@ -139,12 +139,12 @@ EvalResult Evaluator::evalPrefix(list<Token*>& tokens, list<Token*>::iterator& i
     // NUMBER
     // -------------------
 
-    if (IntToken* i = dynamic_cast<IntToken*>(t)) {
+    if (IntToken* i = dynamic_cast<IntToken*>(t.get())) {
         return {stof(i->to_string()), NO_ERROR}; // convert token string into a float
     }
 
     // Check if this token is a float number and convert to a float
-    if (FloatToken* f = dynamic_cast<FloatToken*>(t)) {
+    if (FloatToken* f = dynamic_cast<FloatToken*>(t.get())) {
         return {stof(f->to_string()), NO_ERROR}; 
     }
 
@@ -152,7 +152,7 @@ EvalResult Evaluator::evalPrefix(list<Token*>& tokens, list<Token*>::iterator& i
     // BINARY OPERATORS
     // ---------------------------
 
-    OperatorToken* oper = dynamic_cast<OperatorToken*>(t);
+    OperatorToken* oper = dynamic_cast<OperatorToken*>(t.get());
 
     // Confirm the operator is valid
     if (!oper) {

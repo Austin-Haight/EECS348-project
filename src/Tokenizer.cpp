@@ -129,9 +129,14 @@ class Tokenizer
    floatDFA.setState(5, true);
   }
  public:
-  Tokenizer(list<unique_ptr<Token>> &output)
+  Tokenizer()
   {
-   _out = &output;
+
+  }
+
+  Tokenizer(list<unique_ptr<Token>>* output)
+  {
+   _out = output;
    *_out = list<unique_ptr<Token>>();
    initDFA();
   }
@@ -263,5 +268,10 @@ class Tokenizer
     (*(*_out).back().get()).IsTerminator = true;
    }
    return optional<TokenizerError>();
+  }
+
+  ~Tokenizer()
+  {
+    (*_out).clear();
   }
 };
