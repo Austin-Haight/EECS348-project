@@ -1,9 +1,9 @@
 #include <iostream>
 #include <string>
 #include <iomanip>
-#include "controller.cpp"
+//#include "controller.cpp"
 #include "evaluator.cpp"
-#include "Tokenizer.cpp"
+//#include "Tokenizer.cpp"
 
 using namespace std;
 
@@ -105,6 +105,7 @@ class inputOutput {
         string allowed = "1234567890-*%+/()";
 };
 
+/*
 int main()
 {
     inputOutput io;
@@ -112,4 +113,4 @@ int main()
     cout << io.getUserString();
     io.validateString();
       
-}
+}*/

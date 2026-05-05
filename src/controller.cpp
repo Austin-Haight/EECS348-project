@@ -1,5 +1,6 @@
 #include "Tokenizer.cpp"
 #include "Parser.cpp"
+#include "Evaluator.cpp"
 
 #include <iostream>
 #include <string>
@@ -14,8 +15,10 @@ class Controller
 {
 private:
     vector<string> history;
-    list<unique_ptr<Token>> tokens;
+    list<unique_ptr<Token>>* tokens;
     Tokenizer tokenizer;
+    Evaluator evaluator;
+    Parser parser;
 
     bool isQuitCommand(const string& input)
     {
@@ -67,8 +70,7 @@ private:
             return;
         }
 
-        Parser parser;
-        ParseResult parseResult = parser.parse(tokens);
+        ParseResult parseResult = parser.parse(*tokens);
 
         if (parseResult.error)
         {
@@ -83,13 +85,13 @@ private:
         cout << "Input: " << input << endl;
         displayTokens(parseResult.tokens);
 
-        // Evaluator should be called here once but the parser and Evaluator dont agree yet on the token types.
+        EvalResult evalResult = evaluator.evaluate(*tokens);
     }
 
 public:
     Controller()
     {
-        tokenizer = Tokenizer(&tokens);
+        tokenizer = Tokenizer(tokens);
     }
 
     void run()

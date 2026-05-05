@@ -11,7 +11,7 @@ void runTest(string input)
     cout << "==========================" << endl;
     cout << "Input: " << input << endl;
 
-    list<unique_ptr<Token>> tokens;
+    list<unique_ptr<Token>>* tokens;
     Tokenizer tokenizer(tokens);
 
     optional<TokenizerError> tokError = tokenizer.tokenize(input);
@@ -23,14 +23,14 @@ void runTest(string input)
     }
 
     cout << "Tokenizer output: ";
-    for (auto &t : tokens)
+    for (auto &t : *tokens)
     {
         cout << t->to_string() << " ";
     }
     cout << endl;
 
     Parser parser;
-    ParseResult result = parser.parse(tokens);
+    ParseResult result = parser.parse(*tokens);
 
     if (result.error)
     {
