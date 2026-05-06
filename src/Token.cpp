@@ -1,119 +1,99 @@
+#include "Token.h"
 #include <string>
 
 using namespace std;
 
-class Token
+IntToken::IntToken(string val)
 {
- protected:
-  string value;
- public:
-  const int inputs = 0;
-  bool IsTerminator = false;
+ value=val;
+}
 
-  virtual string to_string() = 0;
-};
-
-class IntToken : public Token
+int IntToken::to_int()
 {
- public:
-  IntToken(string val)
+  int out=0;
+  bool negative=false;
+  for(int i=0; i<value.length();i++)
   {
-   value=val;
+   if(value[i]=='\0')
+   {
+    break;
+   }
+   if(value[i]=='-')
+   {
+    negative=true;
+    continue;
+   }
+   out*=10;
+   out+=((int) value[i])-'0';
   }
-  int to_int()
+  if(negative)
   {
-    int out=0;
-    bool negative=false;
-    for(int i=0; i<value.length();i++)
-    {
-     if(value[i]=='-')
-     {
-      negative=true;
-      continue;
-     }
-     out*=10;
-     out+=value[i];
-    }
-    return (-1*negative)*out;
+    return -1*out;
   }
-  string to_string()
-  {
-   return value;
-  }
-};
+  return out;
+}
 
-class FloatToken : public Token
+string IntToken::to_string()
 {
- public:
-  FloatToken(string val){value=val;}
-  float to_float()
-  {
-    float out=0.;
-    int dotpos=0;
-    bool negative=false;
-    for(int i=0;i<value.length();i++)
-    {
-     if(value[i]=='-')
-     {
-      negative=true;
-      continue;
-     }
-     if(value[i]=='.')
-     {
-      dotpos=i;
-     }
-     else
-     {
-      out*=10;
-      out+=value[i];
-     }
-    }
-    return (-1*negative)*out/(value.length()-dotpos);
-  }
-  string to_string()
-  {
-   return value;
-  }
-};
+ return value;
+}
 
-class OperatorToken : public Token
+FloatToken::FloatToken(string val){value=val;}
+float FloatToken::to_float()
 {
- public:
-  const int inputs = 2;
-  OperatorToken(string val)
+  float out=0.;
+  int dotpos=0;
+  bool negative=false;
+  for(int i=0;i<value.length();i++)
   {
-   value=val;
+   if(value[i]=='\0')
+   {
+    break;
+   }
+   if(value[i]=='-')
+   {
+    negative=true;
+    continue;
+   }
+   if(value[i]=='.')
+   {
+    dotpos=i;
+   }
+   else
+   {
+    out*=10;
+    out+=((int) value[i])-'0';
+   }
   }
-  string to_string()
-  {
-   return value;
-  }
-};
+  return (-1*negative)*out/(value.length()-dotpos);
+}
 
-class NegationToken : public Token
+string FloatToken::to_string()
 {
- public:
-  const int inputs = 1;
-  string to_string()
-  {
-   return "-";
-  }
-};
+ return value;
+}
 
-class OpenParenthesesToken : public Token
+OperatorToken::OperatorToken(string val)
 {
- public:
-  string to_string()
-  {
-   return "(";
-  }
-};
+ value=val;
+}
 
-class CloseParenthesesToken : public Token
+string OperatorToken::to_string()
 {
- public:
-  string to_string()
-  {
-   return ")";
-  }
-};
+ return value;
+}
+
+string NegationToken::to_string()
+{
+ return "-";
+}
+
+string OpenParenthesesToken::to_string()
+{
+ return "(";
+}
+
+string CloseParenthesesToken::to_string()
+{
+ return ")";
+}

@@ -1,17 +1,9 @@
-#include <string>
+#include "Error.h"
 
 using namespace std;
 
-class Error
-{
-};
 
-class TokenizerError : Error
+TokenizerError::TokenizerError(int loc)
 {
- public:
-  int location;
-  TokenizerError(int loc)
-  {
-   location = loc;
-  }
-};
+  location = loc;
+}

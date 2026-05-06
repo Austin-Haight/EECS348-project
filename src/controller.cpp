@@ -1,7 +1,4 @@
-#include "Tokenizer.cpp"
-#include "Parser.cpp"
-#include "Evaluator.cpp"
-
+#include "controller.h"
 #include <iostream>
 #include <string>
 #include <list>
@@ -11,123 +8,132 @@
 
 using namespace std;
 
-class Controller
+bool Controller::isQuitCommand(const string& input)
 {
-private:
-    vector<string> history;
-    list<unique_ptr<Token>>* tokens;
-    Tokenizer tokenizer;
-    Evaluator evaluator;
-    Parser parser;
+    return input == "quit" || input == "Quit" || input == "QUIT" ||
+           input == "exit" || input == "Exit" || input == "EXIT";
+}
 
-    bool isQuitCommand(const string& input)
+bool Controller::isHistoryCommand(const string& input)
+{
+    return input == "history" || input == "History" || input == "HISTORY";
+}
+
+void Controller::displayHistory()
+{
+    if (history.empty())
     {
-        return input == "quit" || input == "Quit" || input == "QUIT" ||
-               input == "exit" || input == "Exit" || input == "EXIT";
+        cout << "No past expressions in this session." << endl;
+        return;
     }
 
-    bool isHistoryCommand(const string& input)
+    cout << "Expression History:" << endl;
+
+    for (int i = 0; i < history.size(); i++)
     {
-        return input == "history" || input == "History" || input == "HISTORY";
+        cout << i + 1 << ".) " << history[i] << endl;
+    }
+}
+
+void Controller::displayTokens(const list<Token*>& tokens)
+{
+    cout << "Parser output: ";
+
+    for (Token* token : tokens)
+    {
+        cout << token->to_string() << " ";
     }
 
-    void displayHistory()
+    cout << endl;
+}
+
+void Controller::processExpression(const string& input)
+{
+    optional<TokenizerError> tokenizerError = tokenizer.tokenize(input);
+
+    if (tokenizerError)
     {
-        if (history.empty())
-        {
-            cout << "No past expressions in this session." << endl;
-            return;
-        }
-
-        cout << "Expression History:" << endl;
-
-        for (int i = 0; i < history.size(); i++)
-        {
-            cout << i + 1 << ".) " << history[i] << endl;
-        }
+        cout << "Error: Tokenizer error at index "
+            << tokenizerError->location << endl;
+        return;
     }
 
-    void displayTokens(const list<Token*>& tokens)
+    ParseResult parseResult = parser.parse(*tokens);
+
+    if (parseResult.error)
     {
-        cout << "Parser output: ";
+        cout << "Error: Parser error at index "
+            << parseResult.error->position
+            << ": " << parseResult.error->message << endl;
+        return;
+    }
 
-        for (Token* token : tokens)
-        {
-            cout << token->to_string() << " ";
-        }
+    history.push_back(input);
 
+    cout << "Input: " << input << endl;
+    displayTokens(parseResult.tokens);
+
+    EvalResult evalResult = evaluator.evaluate(parseResult.tokens);
+
+    if(evalResult.errorType!=0)
+    {
+        io.printEvaluatorError(evalResult);
+    }
+    else
+    {
+        io.printOutput(to_string(evalResult.value));
+    }
+}
+
+Controller::Controller()
+{
+    tokens = new list<Token*>;
+    tokenizer = Tokenizer(tokens);
+}
+
+Controller::~Controller()
+{
+    while(!(*tokens).empty())
+    {
+        delete ((*tokens).front());
+        (*tokens).pop_front();
+    }
+    delete tokens;
+}
+
+void Controller::run()
+{
+    string input;
+
+    cout << "Arithmetic Expression Evaluator" << endl;
+    cout << "Enter an arithmetic expression." << endl;
+    cout << "Type history to view previous expressions." << endl;
+    cout << "Type quit to exit." << endl;
+
+    while (true)
+    {
         cout << endl;
-    }
+        cout << "Expression: ";
+        getline(cin, input);
 
-    void processExpression(const string& input)
-    {
-        optional<TokenizerError> tokenizerError = tokenizer.tokenize(input);
-
-        if (tokenizerError)
+        if (isQuitCommand(input))
         {
-            cout << "Error: Tokenizer error at index "
-                 << tokenizerError->location << endl;
-            return;
+            cout << "Program ended." << endl;
+            break;
         }
 
-        ParseResult parseResult = parser.parse(*tokens);
-
-        if (parseResult.error)
+        if (isHistoryCommand(input))
         {
-            cout << "Error: Parser error at index "
-                 << parseResult.error->position
-                 << ": " << parseResult.error->message << endl;
-            return;
+            displayHistory();
+            continue;
         }
 
-        history.push_back(input);
-
-        cout << "Input: " << input << endl;
-        displayTokens(parseResult.tokens);
-
-        EvalResult evalResult = evaluator.evaluate(*tokens);
-    }
-
-public:
-    Controller()
-    {
-        tokenizer = Tokenizer(tokens);
-    }
-
-    void run()
-    {
-        string input;
-
-        cout << "Arithmetic Expression Evaluator" << endl;
-        cout << "Enter an arithmetic expression." << endl;
-        cout << "Type history to view previous expressions." << endl;
-        cout << "Type quit to exit." << endl;
-
-        while (true)
+        if (input.empty())
         {
-            cout << endl;
-            cout << "Expression: ";
-            getline(cin, input);
-
-            if (isQuitCommand(input))
-            {
-                cout << "Program ended." << endl;
-                break;
-            }
-
-            if (isHistoryCommand(input))
-            {
-                displayHistory();
-                continue;
-            }
-
-            if (input.empty())
-            {
-                cout << "Error: Empty expression." << endl;
-                continue;
-            }
-
-            processExpression(input);
+            cout << "Error: Empty expression." << endl;
+            continue;
         }
+
+        processExpression(input);
     }
-};
+}

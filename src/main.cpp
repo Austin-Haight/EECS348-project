@@ -1,6 +1,7 @@
-#include "controller.cpp"
+#include "controller.h"
+#include <iostream>
 
-void main(void)
+int main(void)
 {
  Controller controller;
  controller.run();
