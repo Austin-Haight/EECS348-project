@@ -5,6 +5,7 @@ OBJECTS=controller.o Error.o Evaluator.o Io.o Parser.o Token.o Tokenizer.o
 all: evaluator
 
 evaluator: main.o  $(OBJECTS)
+	mkdir -p ../bin
 	$(CC) $^ -o ../bin/evaluator
 
 $(OBJECTS): %.o: ../src/%.cpp
@@ -15,8 +16,8 @@ main.o: ../src/main.cpp
 
 clean:
 	rm -rf *.o
-	rm -rf ../bin/prog
+	rm -rf ../bin
 
 run: 
 	make
-	../bin/prog
+	../bin/evaluator
