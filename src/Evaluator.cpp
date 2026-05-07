@@ -4,8 +4,6 @@
 #include <string>
 #include <list>
 
-#include "Parser.h"
-
 using namespace std;
 
 /*
@@ -45,69 +43,72 @@ Returns:
 */
 EvalResult Evaluator::evalPrefix(list<Token*>& tokens, list<Token*>::iterator& it) {
 
-    // If no tokens are left, return a syntax error
+    // -------------------------
+    // SAFETY CHECK
+    // -------------------------
     if (it == tokens.end()) {
         return {0, SYNTAX_ERROR};
     }
 
-    Token* t = *it; // the token 'it' is pointing to
+    Token* t = *it;
+    ++it;
 
-    ++it; // point to the next token
-
-    // ----------------------
-    // UNARY MINUS
-    //-----------------------
-
-    if (dynamic_cast<NegationToken*>(t)) {
-
-        EvalResult subExpr = evalPrefix(tokens, it);
-
-        // Confirm the subexpression has no error before applying operator
-        if (subExpr.errorType != NO_ERROR) {
-            return subExpr;
-        }
-
-        return {-subExpr.value, NO_ERROR}; // negate the value
-    }
-
-    // -------------------
+    // -------------------------
     // NUMBER
-    // -------------------
-
+    // -------------------------
     if (IntToken* i = dynamic_cast<IntToken*>(t)) {
-        return {i->to_int(), NO_ERROR}; // convert token string into a float
+        return {i->to_int(), NO_ERROR};
     }
 
-    // Check if this token is a float number and convert to a float
     if (FloatToken* f = dynamic_cast<FloatToken*>(t)) {
-        return {f->to_float(), NO_ERROR}; 
+        return {f->to_float(), NO_ERROR};
     }
 
-    // ---------------------------
-    // BINARY OPERATORS
-    // ---------------------------
-
+    // -------------------------
+    // OPERATOR
+    // -------------------------
     OperatorToken* oper = dynamic_cast<OperatorToken*>(t);
 
-    // Confirm the operator is valid
     if (!oper) {
         return {0, UNKNOWN_TOKEN};
     }
 
-    string op = oper->to_string(); // convert the operator to a string
+    string op = oper->to_string();
 
-    // Evaluate the left operand
+    // -------------------------
+    // UNARY OPERATORS
+    // -------------------------
+
+    // unary minus
+    if (op == "~") {
+        EvalResult sub = evalPrefix(tokens, it);
+        if (sub.errorType != NO_ERROR) return sub;
+
+        return {-sub.value, NO_ERROR};
+    }
+
+    // unary plus (no-op)
+    if (op == "u+") {
+        EvalResult sub = evalPrefix(tokens, it);
+        if (sub.errorType != NO_ERROR) return sub;
+
+        return {sub.value, NO_ERROR};
+    }
+
+    // -------------------------
+    // BINARY OPERATORS
+    // -------------------------
+
     EvalResult left = evalPrefix(tokens, it);
-
-    // Confirm left operand evaluated successfully
     if (left.errorType != NO_ERROR) {
         return left;
     }
 
-    // Evaluate the right operand
-    EvalResult right = evalPrefix(tokens, it);
+    if (it == tokens.end()) {
+        return {0, SYNTAX_ERROR};
+    }
 
-    // Confirm right operand evaluated successfully
+    EvalResult right = evalPrefix(tokens, it);
     if (right.errorType != NO_ERROR) {
         return right;
     }
@@ -118,36 +119,29 @@ EvalResult Evaluator::evalPrefix(list<Token*>& tokens, list<Token*>::iterator& i
 
     if (op == "+") {
         return {left.value + right.value, NO_ERROR};
-    } 
+    }
 
-    else if (op == "-") {
+    if (op == "-") {
         return {left.value - right.value, NO_ERROR};
     }
 
-    else if (op == "*") {
+    if (op == "*") {
         return {left.value * right.value, NO_ERROR};
     }
 
-    else if (op == "/") {
-        if (right.value == 0) { // check for division by zero
-            return {0, DIV_ZERO};
-        }
+    if (op == "/") {
+        if (right.value == 0) return {0, DIV_ZERO};
         return {left.value / right.value, NO_ERROR};
     }
 
-    else if (op == "%") {
-        if (right.value == 0) { // check for division by zero
-            return {0, DIV_ZERO};
-        }
+    if (op == "%") {
+        if (right.value == 0) return {0, DIV_ZERO};
         return {left.value - right.value * floor(left.value / right.value), NO_ERROR};
     }
 
-    else if (op == "**") {
+    if (op == "**") {
         return {pow(left.value, right.value), NO_ERROR};
     }
 
-    else {
-        return {0, UNKNOWN_TOKEN}; // unknown operator
-    }
-    
+    return {0, UNKNOWN_TOKEN};
 }

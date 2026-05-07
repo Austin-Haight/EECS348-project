@@ -130,18 +130,34 @@ optional<TokenizerError> Tokenizer::tokenize(string input)
   switch(input[i])
   {
    case '-':
-    if((*((*_out).back())).inputs==0)
+  {
+    bool unary = _out->empty(); // assume unary
+
+    if (!unary)
     {
-      (*_out).push_back(new OperatorToken("-"));
-      i++;
-      break;
+        Token* prev = _out->back();
+
+        // If previous token is an operator or '(' then unary
+        if (dynamic_cast<OperatorToken*>(prev) || dynamic_cast<OpenParenthesesToken*>(prev))
+        {
+            unary = true;
+        }
     }
-    if(i+1<input.length() && input[i+1]=='(')//this is the only case where a negation token should actually exist, otherwise it's just part of an int or float
+
+    if (unary)
     {
-     (*_out).push_back(new NegationToken());
-     i++;
-     break;
+        // unary minus
+        _out->push_back(new OperatorToken("~"));
     }
+    else
+    {
+        // binary minus
+        _out->push_back(new OperatorToken("-"));
+    }
+
+    i++;
+    break;
+}
    case '0':
    case '1':
    case '2':
@@ -177,11 +193,32 @@ optional<TokenizerError> Tokenizer::tokenize(string input)
     }
     return TokenizerError(i);
    case '+':
+   {
+    bool unary = _out->empty(); // assume unary
+
+    if (!unary)
     {
-     (*_out).push_back(new OperatorToken("+"));
-     i++;
-     break;
+        Token* prev = _out->back();
+
+        // If previous token is '(' or an operator then it us unary
+        if (dynamic_cast<OperatorToken*>(prev) || dynamic_cast<OpenParenthesesToken*>(prev))
+        {
+            unary = true;
+        }
     }
+
+    if (unary)
+    {
+        _out->push_back(new OperatorToken("u+")); // represent unary
+    }
+    else
+    {
+        _out->push_back(new OperatorToken("+"));
+    }
+
+    i++;
+    break;
+  }
    case '*':
     if(i+1<input.length() && input[i+1]=='*')
     {
