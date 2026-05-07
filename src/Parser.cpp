@@ -119,14 +119,41 @@ unique_ptr<TreeNode> Parser::parseFactor(optional<ParserError>& err)
 // unary := NegationToken primary | primary
 unique_ptr<TreeNode> Parser::parseUnary(optional<ParserError>& err)
 {
-    if (dynamic_cast<NegationToken*>(peek()))
+    if (isOperator(peek(), "~"))   // unary minus
     {
-        Token* neg = consume();
-        unique_ptr<TreeNode> child = parsePrimary(err);
+        Token* op = consume();
+
+        Token* next = peek(); // check that something valid comes next
+
+         // invalid: nothing or ")" comes next
+        if (!next || dynamic_cast<CloseParenthesesToken*>(next))
+        {
+            err = ParserError(_pos, "Missing operand after unary '-'");
+            return nullptr;
+        }
+
+        unique_ptr<TreeNode> child = parseUnary(err);
         if (err) return nullptr;
 
-        return makeNode(neg, std::move(child));
+        return makeNode(op, std::move(child), nullptr);
     }
+
+    if (isOperator(peek(), "u+"))  // unary plus
+    {
+        consume(); // just discard it
+
+        Token* next = peek(); // check that something valid comes next
+
+         // invalid: nothing or ")" comes next
+        if (!next || dynamic_cast<CloseParenthesesToken*>(next))
+        {
+            err = ParserError(_pos, "Missing operand after unary '+'");
+            return nullptr;
+        }
+
+        return parseUnary(err); // no node created
+    }
+
     return parsePrimary(err);
 }
 
